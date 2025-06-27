@@ -1,12 +1,20 @@
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+
+-- Verify client-side execution
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+print("[ToolboxGUI] Initializing GUI...")
 
 -- Create the ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ToolboxGui"
 screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 -- Create the main frame
 local mainFrame = Instance.new("Frame")
@@ -16,6 +24,7 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
+print("[ToolboxGUI] Main frame created")
 
 -- Add rounded corners
 local corner = Instance.new("UICorner")
@@ -105,6 +114,7 @@ local function createButton(name, scriptUrl)
     button.TextSize = 16
     button.Font = Enum.Font.SourceSans
     button.Parent = buttonContainer
+    print("[ToolboxGUI] Created button: " .. name)
 
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 5)
@@ -128,9 +138,21 @@ local function createButton(name, scriptUrl)
 
     -- Execute script on click
     button.MouseButton1Click:Connect(function()
-        pcall(function()
-            loadstring(game:HttpGet(scriptUrl))()
+        print("[ToolboxGUI] Attempting to execute script for button: " .. name)
+        local success, result = pcall(function()
+            local scriptContent = game:HttpGet(scriptUrl)
+            local func = loadstring(scriptContent)
+            if func then
+                func()
+            else
+                warn("[ToolboxGUI] Failed to compile script for " .. name)
+            end
         end)
+        if not success then
+            warn("[ToolboxGUI] Error executing script for " .. name .. ": " .. tostring(result))
+        else
+            print("[ToolboxGUI] Successfully executed script for " .. name)
+        end
     end)
 end
 
@@ -148,6 +170,7 @@ titleBar.InputBegan:Connect(function(input)
         dragging = true
         dragStart = input.Position
         startPos = mainFrame.Position
+        print("[ToolboxGUI] Started dragging")
     end
 end)
 
@@ -160,4 +183,10 @@ titleBar.InputChanged:Connect(function(input)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputscanf
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+        print("[ToolboxGUI] Stopped dragging")
+    end
+end)
+
+print("[ToolboxGUI] GUI initialization complete")
